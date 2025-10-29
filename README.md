@@ -16,6 +16,11 @@ Think of it like test coverage, but for measuring how much your KMP code influen
 
 - 🎯 **Impact Coverage Analysis**: Measure real KMP influence, not just code percentage
 - 🔍 **Symbol Extraction**: Identify all public KMP classes, functions, and properties
+- 🤖 **Dynamic Project Detection**: Automatically discovers KMP, Android, and iOS projects
+  - No hardcoded paths - analyzes project structure intelligently
+  - Detects projects by build files (build.gradle.kts, AndroidManifest.xml, .xcodeproj)
+  - Finds source directories automatically
+  - Fallback to pattern matching for edge cases
 - 📊 **Multi-Platform Support**:
   - **Android**: Kotlin + Java
   - **iOS**: Swift + Objective-C
@@ -62,14 +67,36 @@ kotlin-multiplatform-coverage -f json -o result.json
 
 ## How It Works
 
-1. **Symbol Extraction**: Scans KMP modules to find all public symbols (classes, functions, properties)
-2. **Usage Detection**: Searches app code for references to these KMP symbols using regex patterns
-3. **Dependency Graph**: Builds a graph of file dependencies to track transitive impact
-4. **Impact Calculation**: Computes affected lines and impact ratio
+1. **Dynamic Project Detection**:
+   - Scans for build.gradle.kts with kotlin("multiplatform") plugin
+   - Finds AndroidManifest.xml and build.gradle with Android plugin
+   - Detects .xcodeproj or .xcworkspace for iOS projects
+   - Locates source directories automatically (no hardcoded paths!)
+2. **Symbol Extraction**: Scans KMP modules to find all public symbols (classes, functions, properties)
+3. **Usage Detection**: Searches app code for references to these KMP symbols using regex patterns
+4. **Dependency Graph**: Builds a graph of file dependencies to track transitive impact
+5. **Impact Calculation**: Computes affected lines and impact ratio
 
 ```
-KMP Code → Extract Symbols → Find Usage → Build Dep Graph → Calculate Impact
+Detect Projects → Extract Symbols → Find Usage → Build Dep Graph → Calculate Impact
 ```
+
+### Project Detection Examples
+
+**KMP Project Detection:**
+- Looks for `kotlin("multiplatform")` in build.gradle.kts
+- Finds commonMain, androidMain, iosMain source sets
+- Detects "shared" module with KMP structure
+
+**Android Project Detection:**
+- Finds AndroidManifest.xml
+- Checks build.gradle for Android plugin
+- Locates src/main/java or src/main/kotlin directories
+
+**iOS Project Detection:**
+- Finds .xcodeproj or .xcworkspace
+- Scans for Swift and Objective-C source files
+- Detects iosApp, iOS, ios directories
 
 ## Output Example
 
@@ -105,16 +132,30 @@ KMP Code → Extract Symbols → Find Usage → Build Dep Graph → Calculate Im
 
 ### Android
 - **Languages**: Kotlin (.kt, .kts) + Java (.java)
-- **Detection**: Analyzes both Kotlin and Java files for KMP symbol usage
-- **Directories**: `app/src`, `android/src`, `androidApp/src`, `composeApp/src/androidMain`
+- **Detection**:
+  - Automatically finds projects with AndroidManifest.xml
+  - Detects build.gradle with Android plugin
+  - No hardcoded paths required!
+- **Analyzes**: Both Kotlin and Java files for KMP symbol usage
 
 ### iOS
 - **Languages**: Swift (.swift) + Objective-C (.m, .mm, .h)
-- **Detection**: Finds KMP framework imports and symbol usage in Swift/Objective-C code
-- **Directories**: `iosApp`, `iosApp/iosApp`, `ios`, `iOS`, `composeApp/src/iosMain`
+- **Detection**:
+  - Automatically finds .xcodeproj or .xcworkspace
+  - Scans for Swift/Objective-C source files
+  - Works with any iOS project structure!
+- **Analyzes**: KMP framework imports and symbol usage in Swift/Objective-C code
+
+### Kotlin Multiplatform
+- **Detection**:
+  - Finds build.gradle.kts with kotlin("multiplatform")
+  - Detects commonMain, androidMain, iosMain source sets
+  - Automatically discovers "shared" modules
+  - No manual configuration needed!
 
 ### Extensible Architecture
 The platform system is designed to be easily extended. To add a new platform:
-1. Implement the `Platform` trait in `src/platform/`
-2. Register it in `PlatformRegistry::new()`
-3. Done! The analyzer automatically supports the new platform
+1. Implement the `Platform` trait in `src/adapters/platforms/`
+2. Add detection logic in `src/adapters/project_detector.rs`
+3. Register it in `PlatformRegistry::new()`
+4. Done! The analyzer automatically supports the new platform

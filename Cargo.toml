@@ -6,6 +6,14 @@ authors = ["Your Name <your.email@example.com>"]
 description = "A tool to analyze Kotlin Multiplatform coverage in monorepo"
 license = "MIT"
 
+[lib]
+name = "kotlin_multiplatform_coverage"
+path = "src/lib.rs"
+
+[[bin]]
+name = "kotlin-multiplatform-coverage"
+path = "src/main.rs"
+
 [dependencies]
 # CLI argument parsing
 clap = { version = "4.5", features = ["derive"] }
